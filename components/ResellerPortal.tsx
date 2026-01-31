@@ -3,7 +3,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase.ts';
 import { 
   Building2, Users, LogOut, Plus, Loader2,
-  LayoutDashboard, CreditCard, Share2, TrendingUp, ChevronRight
+  LayoutDashboard, CreditCard, Share2, TrendingUp, ChevronRight,
+  ShieldCheck, ArrowRight, Hash, Clock
 } from 'lucide-react';
 import { SchoolProfile, Reseller, Transaction } from '../types.ts';
 import { LOGO_URL } from '../constants';
@@ -23,7 +24,7 @@ const ResellerPortal: React.FC<{ user: Reseller; onLogout: () => void; }> = ({ u
         .from('school_profiles')
         .select('*')
         .eq('referral_id', user.referral_id)
-        .order('created_at', { ascending: false });
+        .order('nama_sekolah', { ascending: true });
       
       const schoolIds = (schoolData || []).map(s => s.school_id);
       const { data: transactionData } = await supabase
@@ -47,91 +48,114 @@ const ResellerPortal: React.FC<{ user: Reseller; onLogout: () => void; }> = ({ u
       .reduce((sum, t) => sum + (t.amount * user.commission_rate), 0);
   }, [myTransactions, user.commission_rate]);
 
+  const StatBox = ({ label, value, icon, color }: any) => (
+    <div className="bg-white border border-zinc-200 p-6 flex flex-col gap-2">
+      <div className={`p-2 w-fit ${color} bg-opacity-10 rounded-sm`}>
+        {/* Added casting to React.ReactElement<any> to fix type error on size and className props */}
+        {React.cloneElement(icon as React.ReactElement<any>, { size: 16, className: color.replace('bg-', 'text-') })}
+      </div>
+      <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">{label}</p>
+      <h4 className="text-3xl font-black text-zinc-900 tracking-tighter leading-none">{value}</h4>
+    </div>
+  );
+
   return (
-    <div className="h-screen w-full flex bg-[#fafbfc] text-slate-800 font-sans overflow-hidden">
+    <div className="h-screen w-full flex bg-[#f8f9fa] text-zinc-800 font-sans overflow-hidden">
       {isRegistering && <ResellerSchoolRegistration user={user} onClose={() => { setIsRegistering(false); refreshData(); }} />}
       
-      <aside className="w-72 bg-white border-r border-slate-100 flex flex-col shrink-0">
-        <div className="h-24 flex items-center px-8 gap-4 border-b border-slate-50">
-          <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-lg"><Share2 size={24}/></div>
-          <h1 className="text-sm font-black text-slate-900 uppercase leading-none">Partner Hub</h1>
+      {/* Sidebar Partner */}
+      <aside className="w-64 bg-zinc-900 flex flex-col shrink-0 border-r border-black">
+        <div className="h-20 flex items-center px-6 gap-3 border-b border-zinc-800 bg-black">
+          <div className="p-2 bg-emerald-800 rounded-sm text-white shadow-lg"><Share2 size={16}/></div>
+          <div>
+            <h1 className="text-xs font-black text-white uppercase tracking-widest leading-none">Partner Hub</h1>
+            <p className="text-[8px] font-bold text-emerald-500 uppercase tracking-tighter mt-1">Emes CBT Network</p>
+          </div>
         </div>
-        <nav className="flex-1 px-6 py-10 space-y-3">
-           <button onClick={() => setView('dashboard')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${view==='dashboard' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50'}`}><LayoutDashboard size={18}/> Dashboard</button>
-           <button onClick={() => setView('schools')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${view==='schools' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50'}`}><Building2 size={18}/> Sekolah Binaan</button>
-           <button onClick={() => setView('commissions')} className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${view==='commissions' ? 'bg-indigo-600 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-50'}`}><CreditCard size={18}/> Laporan Komisi</button>
+        <nav className="flex-1 py-6 space-y-1">
+           <button onClick={() => setView('dashboard')} className={`w-full flex items-center gap-3 px-6 py-3.5 text-[10px] font-black uppercase tracking-widest transition-all ${view==='dashboard' ? 'bg-zinc-800 text-emerald-400 border-r-4 border-emerald-500 shadow-xl' : 'text-zinc-500 hover:bg-zinc-800 hover:text-white'}`}><LayoutDashboard size={16}/> Beranda</button>
+           <button onClick={() => setView('schools')} className={`w-full flex items-center gap-3 px-6 py-3.5 text-[10px] font-black uppercase tracking-widest transition-all ${view==='schools' ? 'bg-zinc-800 text-emerald-400 border-r-4 border-emerald-500 shadow-xl' : 'text-zinc-500 hover:bg-zinc-800 hover:text-white'}`}><Building2 size={16}/> Sekolah Binaan</button>
+           <button onClick={() => setView('commissions')} className={`w-full flex items-center gap-3 px-6 py-3.5 text-[10px] font-black uppercase tracking-widest transition-all ${view==='commissions' ? 'bg-zinc-800 text-emerald-400 border-r-4 border-emerald-500 shadow-xl' : 'text-zinc-500 hover:bg-zinc-800 hover:text-white'}`}><CreditCard size={16}/> Rekap Komisi</button>
         </nav>
-        <div className="p-6 border-t border-slate-50">
-          <button onClick={onLogout} className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl text-xs font-black uppercase text-red-500 hover:bg-red-50"><LogOut size={18}/> Logout</button>
+        <div className="p-4 border-t border-zinc-800">
+          <button onClick={onLogout} className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-900/20 rounded-sm transition-colors"><LogOut size={16}/> Logout</button>
         </div>
       </aside>
 
+      {/* Konten Utama */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-24 bg-white border-b border-slate-100 flex items-center justify-between px-10 shrink-0">
-          <h2 className="text-sm font-black uppercase text-slate-800 tracking-widest">Portal Agen: {user.name}</h2>
+        <header className="h-20 bg-white border-b border-zinc-200 flex items-center justify-between px-8 shrink-0">
           <div className="flex items-center gap-3">
-             <p className="text-xs font-bold text-slate-400">Referral ID: {user.referral_id}</p>
+            <h2 className="text-xs font-black uppercase text-zinc-900 tracking-[0.2em]">Partner Portal: {user.name}</h2>
+          </div>
+          <div className="flex items-center gap-6">
+             <div className="text-right">
+                <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest">Referral Identity</p>
+                <p className="text-[11px] font-black text-emerald-800 uppercase tracking-tighter mt-1">{user.referral_id}</p>
+             </div>
+             <div className="p-2 bg-zinc-50 border border-zinc-200 rounded-sm"><ShieldCheck size={20} className="text-emerald-700" /></div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-10 scrollbar-hide">
-           {isLoading ? ( <div className="h-full flex items-center justify-center"><Loader2 size={40} className="animate-spin text-indigo-200"/></div>
+        <main className="flex-1 overflow-y-auto p-8 scrollbar-hide">
+           {isLoading ? ( <div className="h-full flex items-center justify-center"><Loader2 size={32} className="animate-spin text-zinc-300"/></div>
            ) : view === 'dashboard' ? (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-in fade-in">
-                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Sekolah Binaan</p>
-                  <h4 className="text-4xl font-black">{mySchools.length}</h4>
-                </div>
-                <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Menunggu Approval</p>
-                  <h4 className="text-4xl font-black text-orange-500">{mySchools.filter(s => s.status === 'pending').length}</h4>
-                </div>
-                <div className="bg-indigo-900 p-8 rounded-3xl text-white shadow-xl">
-                  <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-2">Total Komisi</p>
-                  <h4 className="text-4xl font-black text-white">Rp {totalCommission.toLocaleString('id-ID')}</h4>
+              <div className="space-y-8 animate-in fade-in duration-300">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <StatBox label="Institusi Binaan" value={mySchools.length} icon={<Building2/>} color="bg-emerald-700" />
+                  <StatBox label="Approval Tertunda" value={mySchools.filter(s => s.status === 'pending').length} icon={<Clock/>} color="bg-orange-600" />
+                  <StatBox label="Estimasi Pendapatan" value={`Rp ${totalCommission.toLocaleString('id-ID')}`} icon={<TrendingUp/>} color="bg-emerald-800" />
                 </div>
                 
-                <div className="md:col-span-3 bg-white rounded-[40px] p-12 border-2 border-dashed border-slate-200 text-center">
-                   <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Daftarkan Sekolah Baru?</h3>
-                   <p className="text-slate-400 mt-2 font-medium">Bantu sekolah lain menggunakan Emes CBT dan kumpulkan komisi Anda.</p>
-                   <button onClick={() => setIsRegistering(true)} className="mt-8 px-12 py-4 bg-indigo-600 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl hover:bg-indigo-700 transition-all active:scale-95">
-                     Daftarkan Sekarang
+                <div className="bg-zinc-900 p-12 border-b-8 border-emerald-600 text-center text-white space-y-4">
+                   <h3 className="text-2xl font-black uppercase tracking-tight">Perluas Jaringan Digitalisasi Pendidikan</h3>
+                   <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest max-w-lg mx-auto">Daftarkan sekolah rekanan Anda melalui portal ini untuk mendapatkan validasi referral otomatis dan rekapitulasi komisi yang transparan.</p>
+                   <button onClick={() => setIsRegistering(true)} className="mt-6 px-10 py-3 bg-emerald-700 text-white font-black text-[10px] uppercase tracking-widest rounded-sm border border-emerald-800 shadow-xl active:scale-95 transition-all">
+                     Tambah Sekolah Binaan Baru
                    </button>
                 </div>
               </div>
            ) : view === 'schools' ? (
-              <div className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm animate-in fade-in">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      <tr><th className="p-6 text-left">Nama Sekolah</th><th className="p-6 text-left">NPSN</th><th className="p-6 text-center">Status</th><th className="p-6 text-center">Plan</th></tr>
+              <div className="bg-white border border-zinc-200 overflow-hidden shadow-sm animate-in fade-in duration-300">
+                  <div className="p-4 bg-zinc-50 border-b border-zinc-200">
+                     <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-800">Database Sekolah Rekanan</h3>
+                  </div>
+                  <table className="w-full text-xs border-collapse">
+                    <thead className="bg-zinc-100 text-[9px] font-black uppercase tracking-widest text-zinc-500 border-b border-zinc-200">
+                      <tr><th className="p-4 text-left border-r border-zinc-200">Satuan Pendidikan</th><th className="p-4 text-left border-r border-zinc-200">NPSN</th><th className="p-4 text-center border-r border-zinc-200">Klasifikasi</th><th className="p-4 text-center">Status Aktivasi</th></tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50 font-bold text-slate-700">
+                    <tbody className="divide-y divide-zinc-200 font-bold text-zinc-700">
                       {mySchools.map(s => (
-                        <tr key={s.id}>
-                          <td className="p-6 uppercase">{s.nama_sekolah}</td>
-                          <td className="p-6 font-mono text-slate-400">{s.school_id}</td>
-                          <td className="p-6 text-center">
-                            <span className={`px-3 py-1 rounded-xl text-[9px] font-black uppercase border ${s.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>{s.status.toUpperCase()}</span>
+                        <tr key={s.id} className="hover:bg-zinc-50">
+                          <td className="p-4 uppercase text-zinc-900 font-black border-r border-zinc-200">{s.nama_sekolah}</td>
+                          <td className="p-4 font-mono text-zinc-500 border-r border-zinc-200 uppercase">{s.school_id}</td>
+                          <td className="p-4 text-center border-r border-zinc-200 uppercase text-[9px] font-black text-emerald-800">{s.plan || 'basic'}</td>
+                          <td className="p-4 text-center">
+                            <span className={`px-2 py-0.5 rounded-sm text-[8px] font-black uppercase border ${s.status === 'approved' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-red-50 text-red-800 border-red-200'}`}>{s.status}</span>
                           </td>
-                          <td className="p-6 text-center uppercase text-slate-400">{s.plan || 'basic'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
               </div>
            ) : (
-             <div className="bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm animate-in fade-in">
-                  <table className="w-full text-sm">
-                    <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      <tr><th className="p-6 text-left">Invoice #</th><th className="p-6 text-left">Nilai Transaksi</th><th className="p-6 text-center">Status</th><th className="p-6 text-center">Komisi Anda</th></tr>
+             <div className="bg-white border border-zinc-200 overflow-hidden shadow-sm animate-in fade-in duration-300">
+                  <div className="p-4 bg-zinc-50 border-b border-zinc-200">
+                     <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-800">Laporan Realisasi Komisi Keagenan</h3>
+                  </div>
+                  <table className="w-full text-xs border-collapse">
+                    <thead className="bg-zinc-100 text-[9px] font-black uppercase tracking-widest text-zinc-500 border-b border-zinc-200">
+                      <tr><th className="p-4 text-left border-r border-zinc-200">Referensi Invoice</th><th className="p-4 text-left border-r border-zinc-200">Nilai Transaksi</th><th className="p-4 text-center border-r border-zinc-200">Status</th><th className="p-4 text-right">Hak Komisi Anda</th></tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50 font-bold text-slate-700">
+                    <tbody className="divide-y divide-zinc-200 font-bold text-zinc-700">
                       {myTransactions.map(trx => (
-                        <tr key={trx.id}>
-                          <td className="p-6 font-mono text-slate-400">{trx.invoice_number}</td>
-                          <td className="p-6">Rp {trx.amount.toLocaleString('id-ID')}</td>
-                          <td className="p-6 text-center uppercase text-[10px]">{trx.status}</td>
-                          <td className="p-6 text-center font-black text-emerald-700">Rp {(trx.status === 'paid' ? trx.amount * user.commission_rate : 0).toLocaleString('id-ID')}</td>
+                        <tr key={trx.id} className="hover:bg-zinc-50">
+                          <td className="p-4 font-mono text-zinc-500 border-r border-zinc-200 uppercase text-[10px]">{trx.invoice_number}</td>
+                          <td className="p-4 border-r border-zinc-200 font-black">Rp {trx.amount.toLocaleString('id-ID')}</td>
+                          <td className="p-4 text-center border-r border-zinc-200">
+                             <span className={`px-2 py-0.5 rounded-sm text-[8px] font-black uppercase border ${trx.status==='paid'?'bg-emerald-50 text-emerald-800':'bg-zinc-100 text-zinc-400'}`}>{trx.status}</span>
+                          </td>
+                          <td className="p-4 text-right font-black text-emerald-800">Rp {(trx.status === 'paid' ? trx.amount * user.commission_rate : 0).toLocaleString('id-ID')}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -139,6 +163,9 @@ const ResellerPortal: React.FC<{ user: Reseller; onLogout: () => void; }> = ({ u
               </div>
           )}
         </main>
+        <footer className="h-10 border-t border-zinc-200 bg-white px-8 flex items-center justify-center">
+            <p className="text-[9px] font-black text-zinc-300 uppercase tracking-[0.4em]">&copy; 2026 Emes EduTech</p>
+        </footer>
       </div>
     </div>
   );
