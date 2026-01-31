@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import AdminPortal from './components/AdminPortal.tsx';
 import StudentPortal from './components/StudentPortal.tsx';
@@ -8,6 +9,7 @@ import SuperadminLogin from './components/SuperadminLogin.tsx';
 import ResellerLogin from './components/ResellerLogin.tsx';
 import { Loader2 } from 'lucide-react';
 import { UserRole } from './types';
+import { supabase } from './lib/supabase.ts';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<any | null>(null);
@@ -15,37 +17,86 @@ const App: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem('emes_cbt_user');
-      const savedRole = localStorage.getItem('emes_cbt_role');
-      if (savedUser && savedRole) {
-        setCurrentUser(JSON.parse(savedUser));
-        setUserRole(savedRole as UserRole);
+    const initializeAuth = async () => {
+      try {
+        // 1. PRIORITAS: Cek Sesi Native Supabase (Untuk Superadmin)
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          // Verifikasi apakah user tersebut memang Superadmin di tabel publik
+          const { data: profile } = await supabase
+            .from('super_admins')
+            .select('*')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          if (profile) {
+            setCurrentUser({
+              ...session.user,
+              nama: profile.nama,
+              username: 'superadmin',
+              jabatan: 'Platform Owner'
+            });
+            setUserRole('super_admin');
+            setIsInitializing(false);
+            return;
+          }
+        }
+
+        // 2. FALLBACK: Cek Sesi Manual (Untuk Sekolah & Siswa)
+        const savedUser = localStorage.getItem('emes_cbt_user');
+        const savedRole = localStorage.getItem('emes_cbt_role');
+        if (savedUser && savedRole) {
+          setCurrentUser(JSON.parse(savedUser));
+          setUserRole(savedRole as UserRole);
+        }
+      } catch (error) {
+        console.error("Gagal memuat sesi", error);
+      } finally {
+        setIsInitializing(false);
       }
-    } catch (error) {
-      console.error("Gagal memuat sesi dari localStorage", error);
-      localStorage.clear();
-    } finally {
-      setIsInitializing(false);
-    }
+    };
+
+    initializeAuth();
+
+    // Listen for Auth changes (Supabase Native)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        setUserRole(null);
+        localStorage.removeItem('emes_cbt_user');
+        localStorage.removeItem('emes_cbt_role');
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLoginSuccess = (user: any, role: UserRole) => {
-    localStorage.setItem('emes_cbt_user', JSON.stringify(user));
-    localStorage.setItem('emes_cbt_role', role);
+    // Role super_admin ditangani oleh Supabase Session secara otomatis
+    if (role !== 'super_admin') {
+      localStorage.setItem('emes_cbt_user', JSON.stringify(user));
+      localStorage.setItem('emes_cbt_role', role);
+    }
     setCurrentUser(user);
     setUserRole(role);
   };
 
-  const handleLogout = () => {
-    if (window.confirm("Apakah Anda yakin ingin keluar dari sesi ini?")) {
-      const role = localStorage.getItem('emes_cbt_role');
+  const handleLogout = async () => {
+    if (window.confirm("Apakah Anda yakin ingin keluar?")) {
+      const role = userRole;
+      
+      // Logout dari Supabase Auth jika dia Superadmin
+      if (role === 'super_admin') {
+        await supabase.auth.signOut();
+      }
+
       localStorage.removeItem('emes_cbt_user');
       localStorage.removeItem('emes_cbt_role');
       setCurrentUser(null);
       setUserRole(null);
       
-      if (role === 'superadmin') window.location.href = '/superadmin';
+      if (role === 'super_admin') window.location.href = '/superadmin';
       else if (role === 'reseller') window.location.href = '/reseller';
       else window.location.href = '/';
     }
@@ -59,7 +110,6 @@ const App: React.FC = () => {
     );
   }
 
-  // Jika pengguna sudah login, tampilkan portal yang sesuai
   if (currentUser && userRole) {
     switch (userRole) {
       case 'super_admin':
@@ -73,18 +123,13 @@ const App: React.FC = () => {
     }
   }
 
-  // Jika belum login, tentukan halaman berdasarkan URL
   const { pathname } = window.location;
-
   if (pathname.startsWith('/superadmin')) {
     return <SuperadminLogin onLoginSuccess={handleLoginSuccess} />;
   }
-
   if (pathname.startsWith('/reseller')) {
     return <ResellerLogin onLoginSuccess={handleLoginSuccess} />;
   }
-
-  // Halaman default (publik/sekolah)
   return <PublicPortal onLoginSuccess={handleLoginSuccess} />;
 };
 
