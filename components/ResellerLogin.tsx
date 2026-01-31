@@ -1,8 +1,7 @@
 
 import React, { useState } from 'react';
-import { Loader2, AlertCircle, Eye, EyeOff, User, Key, ArrowRight, Share2, ShieldCheck } from 'lucide-react';
+import { Loader2, AlertCircle, Eye, EyeOff, User, Key, ArrowRight, Share2 } from 'lucide-react';
 import { supabase } from '../lib/supabase.ts';
-import { LOGO_URL } from '../constants';
 import { UserRole } from '../types.ts';
 
 interface ResellerLoginProps {
@@ -21,7 +20,7 @@ const ResellerLogin: React.FC<ResellerLoginProps> = ({ onLoginSuccess }) => {
     setError('');
     
     if (!referralId || !password) {
-      setError('ID Agen dan Password wajib diisi.');
+      setError('ID Partner dan Password wajib diisi.');
       return;
     }
 
@@ -40,93 +39,92 @@ const ResellerLogin: React.FC<ResellerLoginProps> = ({ onLoginSuccess }) => {
       if (reseller) {
         onLoginSuccess(reseller, 'reseller');
       } else {
-        setError('ID Agen atau password salah.');
+        setError('Kredensial partner tidak valid.');
       }
     } catch (err: any) {
-      setError(`Koneksi Gagal: ${err.message}`);
+      setError(`Kesalahan Otorisasi: ${err.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-white font-sans relative overflow-hidden">
-        {/* Subtle decorative background */}
-        <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
-            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:40px_40px]"></div>
+    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-zinc-50 font-sans relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.05] pointer-events-none bg-zinc-200">
+            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:32px:32px]"></div>
         </div>
 
         <div className="w-full max-w-sm relative z-10">
-            <div className="text-center mb-10">
-                <div className="inline-flex p-4 bg-indigo-50 rounded-2xl mb-6 border border-indigo-100 shadow-sm">
-                    <Share2 size={44} className="text-indigo-600"/>
+            <div className="text-center mb-8">
+                <div className="inline-flex p-3 bg-emerald-800 rounded-sm mb-4 shadow-xl border border-emerald-900">
+                    <Share2 size={32} className="text-white"/>
                 </div>
-                <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">Partner Console</h1>
-                <p className="text-xs text-slate-400 font-bold tracking-[0.2em] uppercase mt-2">Agent & Reseller Access</p>
+                <h1 className="text-xl font-black text-zinc-900 uppercase tracking-[0.2em]">Emes CBT</h1>
+                <p className="text-[9px] text-zinc-400 font-bold tracking-[0.4em] uppercase mt-2">Partner & Network Console</p>
             </div>
 
-            <div className="bg-white rounded-3xl shadow-[0_40px_80px_-20px_rgba(0,0,0,0.12)] border border-slate-100 p-8 md:p-10">
-                <form onSubmit={handleLogin} className="space-y-6">
+            <div className="bg-white rounded-sm shadow-2xl border border-zinc-200 p-8">
+                <form onSubmit={handleLogin} className="space-y-5">
                     {error && (
-                        <div className="p-3 bg-red-50 border border-red-100 text-red-700 text-[11px] font-bold flex items-center gap-2 rounded-xl animate-shake">
-                            <AlertCircle size={16} className="shrink-0" /> 
+                        <div className="p-3 bg-red-50 border border-red-100 text-red-700 text-[10px] font-black uppercase flex items-center gap-2">
+                            <AlertCircle size={14} className="shrink-0" /> 
                             <span>{error}</span>
                         </div>
                     )}
                     
                     <div>
-                        <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest ml-1">Referral Identity</label>
+                        <label className="block text-[9px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Partner Identity</label>
                          <div className="relative">
-                            <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+                            <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-300 pointer-events-none" />
                             <input 
                                 type="text"
                                 value={referralId}
                                 onChange={e => setReferralId(e.target.value)}
-                                className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 outline-none transition-all uppercase"
-                                placeholder="ID AGEN"
+                                className="w-full pl-10 pr-4 py-3 bg-zinc-50 border border-zinc-300 rounded-sm text-sm font-bold text-zinc-800 focus:bg-white focus:border-emerald-700 outline-none transition-all uppercase"
+                                placeholder="ID PARTNER"
                                 disabled={loading}
                                 autoFocus
                             />
                         </div>
                     </div>
                     <div>
-                        <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-widest ml-1">Secure Password</label>
+                        <label className="block text-[9px] font-black text-zinc-400 mb-2 uppercase tracking-widest">Partner Key</label>
                         <div className="relative">
-                            <Key size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
+                            <Key size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-300 pointer-events-none" />
                             <input 
                                 type={showPassword ? 'text' : 'password'}
                                 value={password}
                                 onChange={e => setPassword(e.target.value)}
-                                className="w-full pl-12 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-800 focus:bg-white focus:border-indigo-600 focus:ring-4 focus:ring-indigo-600/5 outline-none transition-all"
+                                className="w-full pl-10 pr-12 py-3 bg-zinc-50 border border-zinc-300 rounded-sm text-sm font-bold text-zinc-800 focus:bg-white focus:border-emerald-700 outline-none transition-all"
                                 placeholder="••••••••"
                                 disabled={loading}
                             />
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-300 hover:text-indigo-600 transition-colors"
+                                className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-300 hover:text-emerald-700 transition-colors"
                             >
-                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                             </button>
                         </div>
                     </div>
                     <button 
                         type="submit"
                         disabled={loading}
-                        className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-xl shadow-indigo-900/10 active:scale-[0.98]"
+                        className="w-full py-3.5 bg-emerald-800 hover:bg-emerald-900 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-xl active:scale-[0.98]"
                     >
                         {loading ? (
-                            <Loader2 size={16} className="animate-spin" />
+                            <Loader2 size={14} className="animate-spin" />
                         ) : (
-                            <>Authorize Partner <ArrowRight size={16} /></>
+                            <>Authorize Partner <ArrowRight size={14} /></>
                         )}
                     </button>
                 </form>
             </div>
             
             <div className="mt-12 text-center">
-                <p className="text-[10px] text-slate-300 font-black uppercase tracking-[0.3em]">
-                    &copy; 2026 EMES PARTNER PROGRAM
+                <p className="text-[9px] text-zinc-300 font-black uppercase tracking-[0.5em]">
+                    &copy; 2026 Emes EduTech
                 </p>
             </div>
         </div>
