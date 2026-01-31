@@ -84,6 +84,7 @@ const SchoolFormModal: React.FC<{
   onSave: (data: Partial<SchoolProfile>) => Promise<void>;
   onClose: () => void;
 }> = ({ school, resellers, onSave, onClose }) => {
+  // PENTING: Menambahkan field wajib (NOT NULL) agar tidak error 400
   const [formData, setFormData] = useState<Partial<SchoolProfile>>({
     school_id: '',
     nama_sekolah: '',
@@ -91,7 +92,13 @@ const SchoolFormModal: React.FC<{
     jenjang: 'SMP/MTs',
     plan: 'basic',
     quota_total: 100,
+    quota_used: 0,
     referral_id: '',
+    alamat: '-', 
+    provinsi: '-',
+    kepala_sekolah: '-',
+    nip_kepala_sekolah: '-',
+    status: 'approved',
     ...school,
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -185,6 +192,8 @@ const SuperadminPortal: React.FC<{ user: any; onLogout: () => void; }> = ({ user
       setResellers(results[1].data || []);
       setAllStudents(results[2].data || []);
       setAllTransactions(results[3].data || []);
+    } catch (err: any) {
+        console.error("Fetch Error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -195,25 +204,32 @@ const SuperadminPortal: React.FC<{ user: any; onLogout: () => void; }> = ({ user
   const handleSaveReseller = async (data: Partial<Reseller>) => {
     try {
       if (data.id) {
-        await supabase.from('resellers').update(data).eq('id', data.id);
+        const { error } = await supabase.from('resellers').update(data).eq('id', data.id);
+        if (error) throw error;
       } else {
-        await supabase.from('resellers').insert([data]);
+        const { error } = await supabase.from('resellers').insert([data]);
+        if (error) throw error;
       }
       setFormReseller(null);
-      refreshData();
-    } catch (e: any) { alert(e.message); }
+      await refreshData();
+    } catch (e: any) { alert("GAGAL SIMPAN AGEN: " + e.message); }
   };
 
   const handleSaveSchool = async (data: Partial<SchoolProfile>) => {
     try {
-      if (data.id) {
-        await supabase.from('school_profiles').update(data).eq('id', data.id);
+      // Membersihkan data sebelum dikirim untuk menghindari mismatch kolom
+      const { id, ...cleanData } = data;
+      
+      if (id) {
+        const { error } = await supabase.from('school_profiles').update(cleanData).eq('id', id);
+        if (error) throw error;
       } else {
-        await supabase.from('school_profiles').insert([{...data, status: 'approved'}]);
+        const { error } = await supabase.from('school_profiles').insert([{...cleanData}]);
+        if (error) throw error;
       }
       setFormSchool(null);
-      refreshData();
-    } catch (e: any) { alert(e.message); }
+      await refreshData();
+    } catch (e: any) { alert("GAGAL SIMPAN SEKOLAH: " + e.message); }
   };
 
   if (activePrintJob) {
@@ -223,7 +239,6 @@ const SuperadminPortal: React.FC<{ user: any; onLogout: () => void; }> = ({ user
   const StatItem = ({ label, value, icon, color }: any) => (
     <div className="bg-white border border-zinc-200 p-6 flex flex-col gap-2">
       <div className={`p-2 w-fit ${color} bg-opacity-10 rounded-sm`}>
-        {/* Added casting to React.ReactElement<any> to fix type error on size and className props */}
         {React.cloneElement(icon as React.ReactElement<any>, { size: 16, className: color.replace('bg-', 'text-') })}
       </div>
       <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">{label}</p>
@@ -249,7 +264,6 @@ const SuperadminPortal: React.FC<{ user: any; onLogout: () => void; }> = ({ user
               onClick={() => setView(item.id)} 
               className={`w-full flex items-center gap-3 px-6 py-3.5 text-[10px] font-black uppercase tracking-widest transition-all ${view===item.id ? 'bg-zinc-800 text-emerald-400 border-r-4 border-emerald-500 shadow-xl' : 'text-zinc-500 hover:bg-zinc-800 hover:text-white'}`}
             >
-              {/* Added <any> to React.ReactElement cast to fix property 'size' not existing on Attributes error */}
               {React.cloneElement(item.icon as React.ReactElement<any>, { size: 16 })} {item.label}
             </button>
           ))}
@@ -323,7 +337,7 @@ const SuperadminPortal: React.FC<{ user: any; onLogout: () => void; }> = ({ user
                     <tr><th className="p-4 text-left border-r border-zinc-200">Satuan Pendidikan</th><th className="p-4 text-left border-r border-zinc-200">NPSN</th><th className="p-4 text-left border-r border-zinc-200">Agen Referral</th><th className="p-4 text-center border-r border-zinc-200">Status</th><th className="p-4 text-right">Opsi</th></tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-200 font-bold text-zinc-700">
-                    {schools.map(s => (
+                    {schools.length > 0 ? schools.map(s => (
                       <tr key={s.id} className="hover:bg-zinc-50 transition-colors">
                         <td className="p-4 uppercase text-zinc-900 font-black border-r border-zinc-200">{s.nama_sekolah}</td>
                         <td className="p-4 font-mono text-zinc-500 border-r border-zinc-200">{s.school_id}</td>
@@ -335,7 +349,9 @@ const SuperadminPortal: React.FC<{ user: any; onLogout: () => void; }> = ({ user
                           <button onClick={() => setFormSchool(s)} className="p-1.5 text-zinc-400 hover:text-emerald-700 transition-colors"><Edit2 size={16}/></button>
                         </td>
                       </tr>
-                    ))}
+                    )) : (
+                        <tr><td colSpan={5} className="p-10 text-center text-gray-400 font-bold uppercase italic">Data Sekolah Kosong</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -387,7 +403,7 @@ const SuperadminPortal: React.FC<{ user: any; onLogout: () => void; }> = ({ user
                       <tbody className="divide-y divide-zinc-200 font-bold text-zinc-700">
                         {allTransactions.map(trx => {
                           const school = schools.find(s => s.school_id === trx.school_id);
-                          return (<tr key={trx.id} className="hover:bg-zinc-50">
+                          return (<tr key={trx.id} className="hover:bg-zinc-50 transition-colors">
                             <td className="p-4 font-mono text-zinc-500 text-[10px] border-r border-zinc-200 uppercase">{trx.invoice_number}</td>
                             <td className="p-4 uppercase text-zinc-900 font-black border-r border-zinc-200">{school?.nama_sekolah || 'N/A'}</td>
                             <td className="p-4 text-center font-black border-r border-zinc-200">Rp {trx.amount.toLocaleString('id-ID')}</td>
